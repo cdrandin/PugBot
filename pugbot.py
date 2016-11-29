@@ -1,8 +1,8 @@
-import discord
 import json
-
 # Commands #
-from commands.pug import pug
+from commands.pug_orm import pug
+
+import discord
 
 config = json.loads(open('config.json').read())  # Load Configs
 DISCORD_TOKEN = config["discord_token"]
