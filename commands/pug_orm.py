@@ -15,13 +15,17 @@ GEMMABLE_SLOTS = ["back", "chest", "feet", "finger1", "finger2", "hands",
                   "head", "legs", "main_hand", "neck", "off_hand", "ranged",
                   "shoulder", "trinket1", "trinket2", "waist", "wrist"]
 
-config = json.loads(open("config.json").read())  # Load Configs
-API_KEY = config["blizzard_api_key"]
-default_region = config["default_region"]
+with open('config.json', 'r') as infile:
+    config = json.loads(infile.read())  # Load Configs
+    API_KEY = config["blizzard_api_key"]
+    default_region = config["default_region"]
 
-Connection.setup(
-    api_key=API_KEY,
-    locale=default_region)
+region_locale = {
+    'us': ['us', 'en_US', 'en'],
+    'kr': ['kr', 'ko_KR', 'ko'],
+    #    'tw': ['tw', 'zh_TW', 'zh'],
+    'eu': ['eu', 'en_GB', 'en']
+}
 
 
 def get_sockets(equipment):
@@ -65,9 +69,9 @@ def get_enchants(equipment):
     }
 
 
-def get_raid_progression(progression, raid_name):
+def get_raid_progression(progression, raid_id):
     raid = next(raid for raid in progression[
-                "raids"] if raid.name == raid_name)
+                "raids"] if raid.id == raid_id)
 
     normal = 0
     heroic = 0
@@ -112,30 +116,35 @@ def get_mythic_progression(character):
     }
 
 
-def get_char(name, server):
+def get_char(name, server, target_region=battlenet.UNITED_STATES):
+    Connection.setup(
+        api_key=API_KEY,
+        locale='us')
+
     return_string = ""
     try:
-        character = Character(battlenet.UNITED_STATES, server, name, fields=[
+        character = Character(target_region, server, name, fields=[
             Character.GUILD, Character.ITEMS, Character.PROGRESSION,
             Character.ACHIEVEMENTS])
     except Exception as e:
         raise e
 
-    return_string += "**%s** - **%s** - **%s %s**\n" % (
-        character.name, character.get_realm_name(), character.level, character.get_class_name())
+    return_string += "**%s** - **%s(%s)** - **%s %s**\n" % (
+        character.name, character.get_realm_name(), character.region.upper(),
+        character.level, character.get_class_name())
 
     return_string += "Last Modified: {}\n".format(
         character.last_modified.strftime("%x - %I:%M:%S %p"))
 
-    armory_url = "http://us.battle.net/wow/en/character/{}/{}/advanced".format(
-        character.get_realm_name(), character.name)
+    armory_url = "http://{}.battle.net/wow/en/character/{}/{}/advanced".format(target_region,
+                                                                               character.get_realm_name().replace(' ', '%20'), character.name)
 
     # Raid Progression
     en_progress = get_raid_progression(
-        character.progression, "The Emerald Nightmare")
+        character.progression, 8025)  # the emarld nightmare
 
     tov_progress = get_raid_progression(
-        character.progression, "Trial of Valor")
+        character.progression, 8440)  # trial of valor
 
     mythic_progress = get_mythic_progression(character)
 
@@ -186,21 +195,25 @@ def get_char(name, server):
 
 
 async def pug(client, message):
+    target_region = default_region
     try:
         i = str(message.content).split(" ")
         name = i[1]
         server = i[2]
-        character_info = get_char(name, server)
+        if len(i) == 4 and i[3].lower() in region_locale.keys():
+            target_region = i[3].lower()
+        character_info = get_char(name, server, target_region)
         await client.send_message(message.channel, character_info)
     except Exception as e:
-        print(e)
-        await client.send_message(message.channel, "Error With Name or Server\n"
-                                                   "Use: !pug <name> <server>\n"
+        await client.send_message(message.channel, "Error: " + str(e) + "\n"
+                                                   "Use: !pug <name> <server> <region>\n"
                                                    "Hyphenate Two Word Servers (Ex: Twisting-Nether)")
 
 
 def main():
-    info = get_char("monkinthebox", "Lightbringer")
+
+    info = get_char("Bella", "Steamwheedle Cartel", "eu")
+    # info = get_char("뽀또님", "Azshara", "kr")
     print(info)
 
 if __name__ == "__main__":
