@@ -121,7 +121,6 @@ def get_char(name, server, target_region=battlenet.UNITED_STATES):
         api_key=API_KEY,
         locale='us')
 
-    return_string = ""
     try:
         character = Character(target_region, server, name, fields=[
             Character.GUILD, Character.ITEMS, Character.PROGRESSION,
@@ -129,6 +128,7 @@ def get_char(name, server, target_region=battlenet.UNITED_STATES):
     except Exception as e:
         raise e
 
+    return_string = ""
     return_string += "**%s** - **%s(%s)** - **%s %s**\n" % (
         character.name, character.get_realm_name(), character.region.upper(),
         character.level, character.get_class_name())
