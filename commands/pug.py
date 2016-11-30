@@ -143,7 +143,7 @@ def get_mythic_progression(player_dictionary):
 def get_char(name, server):
     r = requests.get("https://%s.api.battle.net/wow/character/%s/%s?fields=items+progression+achievements&locale=%s&apikey=%s" % (
             region_locale[target_region][0], server, name, region_locale[target_region][1], API_KEY))
-    
+
     if r.status_code != 200:
         raise Exception("Could Not Find Character (No 200 from API)")
 
